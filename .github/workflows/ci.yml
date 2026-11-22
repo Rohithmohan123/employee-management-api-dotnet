@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and integration tests (SQLite in-memory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release -warnaserror
+      - run: dotnet test --no-build -c Release --logger "trx;LogFileName=results.trx" --logger "console;verbosity=normal"
+
+  api-on-sql-server:
+    name: API + migrations on SQL Server 2022, Postman tests (Newman)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: CiOnly_Passw0rd!
+        ports: ['1433:1433']
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'CiOnly_Passw0rd!' -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s --health-timeout 5s --health-retries 12
+    env:
+      ConnectionStrings__Default: Server=localhost,1433;Database=EmployeeManagement;User Id=sa;Password=CiOnly_Passw0rd!;TrustServerCertificate=True
+      Database__MigrateOnStartup: 'true'
+      ASPNETCORE_URLS: http://localhost:5080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Start the API (applies EF Core migrations to SQL Server)
+        run: |
+          dotnet run --project src/EmployeeManagement.Api -c Release > api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:5080/health && break; sleep 2; done
+          curl -sf http://localhost:5080/health || (cat api.log; exit 1)
+      - name: Run the Postman collection with Newman
+        run: npx --yes newman@6 run postman/EmployeeManagement.postman_collection.json --env-var baseUrl=http://localhost:5080
+      - name: API log
+        if: always()
+        run: cat api.log

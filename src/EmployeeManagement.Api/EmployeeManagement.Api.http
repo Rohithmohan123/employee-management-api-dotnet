@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:5080
+
+GET {{baseUrl}}/api/employees?page=1&pageSize=5
+###
+GET {{baseUrl}}/api/employees/3
+###
+POST {{baseUrl}}/api/employees
+Content-Type: application/json
+
+{ "firstName": "Lina", "lastName": "Haddad", "email": "lina.haddad@example.com", "jobTitle": "Software Engineer",
+  "hireDate": "2026-03-01", "monthlySalary": 14000, "departmentId": 1, "managerId": 2 }
+###
+GET {{baseUrl}}/api/departments
