@@ -7,8 +7,8 @@ namespace EmployeeManagement.Api.Dtos;
 public record DepartmentDto(int Id, string Name, string Location, int EmployeeCount);
 
 public record DepartmentRequest(
-    [property: Required, StringLength(100, MinimumLength = 2)] string Name,
-    [property: Required, StringLength(100, MinimumLength = 2)] string Location);
+    [Required, StringLength(100, MinimumLength = 2)] string Name,
+    [Required, StringLength(100, MinimumLength = 2)] string Location);
 
 // ---------- Employees ----------
 public record EmployeeSummaryDto(int Id, string FullName, string Email, string JobTitle, string Department, EmployeeStatus Status);
@@ -63,6 +63,6 @@ public record ProjectDto(int Id, string Code, string Name, int DepartmentId, str
 public record AssignmentDto(int ProjectId, string ProjectCode, string ProjectName, string Role, int AllocationPercent);
 
 public record AssignmentRequest(
-    [property: Range(1, int.MaxValue)] int ProjectId,
-    [property: Required, StringLength(60, MinimumLength = 2)] string Role,
-    [property: Range(1, 100)] int AllocationPercent);
+    [Range(1, int.MaxValue)] int ProjectId,
+    [Required, StringLength(60, MinimumLength = 2)] string Role,
+    [Range(1, 100)] int AllocationPercent);
